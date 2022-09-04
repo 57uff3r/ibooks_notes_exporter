@@ -9,11 +9,17 @@ import (
 	"os"
 )
 
-const getAllBooksDbQueryConstant = "select ZBKLIBRARYASSET.ZASSETID, ZBKLIBRARYASSET.ZTITLE," +
-	" count(annotations.ZAEANNOTATION.Z_PK" +
-	" ZBKLIBRARYASSET.ZAUTHOR from ZBKLIBRARYASSET left join annotations.ZAEANNOTATION" +
-	"annotations.ZAEANNOTATION.ZANNOTATIONASSETID = ZBKLIBRARYASSET.ZASSETID " +
-	"GROUP BY ZBKLIBRARYASSET.ZASSETID"
+const getAllBooksDbQueryConstant = `
+	select 
+		ZBKLIBRARYASSET.ZASSETID,
+		ZBKLIBRARYASSET.ZTITLE,
+		ZBKLIBRARYASSET.ZAUTHOR,    
+		count(a.ZAEANNOTATION.Z_PK)
+	from ZBKLIBRARYASSET left join a.ZAEANNOTATION
+		on a.ZAEANNOTATION.ZANNOTATIONASSETID = ZBKLIBRARYASSET.ZASSETID
+	WHERE a.ZAEANNOTATION.ZANNOTATIONSELECTEDTEXT NOT NULL
+	GROUP BY ZBKLIBRARYASSET.ZASSETID;
+`
 
 func main() {
 	homedir, err := os.UserHomeDir()
@@ -21,11 +27,19 @@ func main() {
 		log.Fatal(err)
 	}
 
-	var annotationDbPath string = fmt.Sprintf("%s/Library/Containers/com.apple.iBooksX/Data/Documents/AEAnnotation/AEAnnotation_v10312011_1727_local.sqlite", homedir)
-	var bookDbPath string = fmt.Sprintf("%s/Library/Containers/com.apple.iBooksX/Data/Documents/BKLibrary/BKLibrary-1-091020131601.sqlite", homedir)
+	var annotationDbPath string = fmt.Sprintf("file:%s/Library/Containers/com.apple.iBooksX/Data/Documents/AEAnnotation/AEAnnotation_v10312011_1727_local.sqlite?cache=shared&mode=ro", homedir)
+	var bookDbPath string = fmt.Sprintf("file:%s/Library/Containers/com.apple.iBooksX/Data/Documents/BKLibrary/BKLibrary-1-091020131601.sqlite?cache=shared&mode=ro", homedir)
 
 	fmt.Println(annotationDbPath)
 	fmt.Println(bookDbPath)
+
+	//sql.Register("sqlite3_hooked",
+	//	&sqlite3.SQLiteDriver{
+	//		ConnectHook: func(conn *sqlite3.SQLiteConn) error {
+	//			conn.Exec("ATTACH DATABASE '"+annotationDbPath+"' AS 'annotations';", nil)
+	//			return nil
+	//		},
+	//	})
 
 	db, err := sql.Open("sqlite3", fmt.Sprintf("%s", bookDbPath))
 	if err != nil {
@@ -33,20 +47,24 @@ func main() {
 	}
 
 	defer db.Close()
-	db.SetMaxOpenConns(1)
-	//fmt.Println("Gamarjoba")
 
 	// Attach second SQLLite database file to connection
-	db.Exec(fmt.Sprintf("attach database %s as annotations", annotationDbPath))
+	_, err = db.Exec(fmt.Sprintf("attach database '%s' as a", annotationDbPath))
+	if err != nil {
+		log.Println(fmt.Sprintf("attach database '%s' as a", annotationDbPath))
+		log.Fatal(err)
+	}
 
 	// Getting a list of books
 	var (
 		book_id     string
 		book_title  string
 		book_author string
+		number      int
 	)
 	rows, err := db.Query(getAllBooksDbQueryConstant)
 	if err != nil {
+		log.Println(getAllBooksDbQueryConstant)
 		log.Fatal(err)
 	}
 	defer rows.Close()
@@ -54,17 +72,17 @@ func main() {
 	// Render table with books
 	t := table.NewWriter()
 	t.SetOutputMirror(os.Stdout)
-	t.AppendHeader(table.Row{"Book ID", "Title and Author"})
+	t.AppendHeader(table.Row{"Book ID", "Number of notes", "Title and Author"})
 
 	for rows.Next() {
-		err := rows.Scan(&book_id, &book_title, &book_author)
+		err := rows.Scan(&book_id, &book_title, &book_author, &number)
 		if err != nil {
 			log.Fatal(err)
 		}
 		//fmt.Println(book_id, book_title, book_author)
 		t.AppendRows([]table.Row{
 			//{1, "Arya", "Stark", 3000},
-			{book_id, fmt.Sprintf("%s — %s", book_title, book_author)},
+			{book_id, number, fmt.Sprintf("%s — %s", book_title, book_author)},
 		})
 
 	}
