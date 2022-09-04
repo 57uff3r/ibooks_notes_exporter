@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/jedib0t/go-pretty/v6/table"
 	_ "github.com/mattn/go-sqlite3"
+	"github.com/urfave/cli/v2"
 	"log"
 	"os"
 )
@@ -22,6 +23,26 @@ const getAllBooksDbQueryConstant = `
 `
 
 func main() {
+	app := &cli.App{
+		Name:    "Ibooks notes exporter",
+		Usage:   "Export your records from Apple iBooks",
+		Authors: []*cli.Author{{Name: "Andrey Korchak", Email: "me@akorchak.software"}},
+		Commands: []*cli.Command{
+			{
+				Name:   "books",
+				Usage:  "Get list of the books with notes and highlights",
+				Action: getListOfBooks,
+			},
+		},
+	}
+
+	if err := app.Run(os.Args); err != nil {
+		log.Fatal(err)
+	}
+
+}
+
+func getListOfBooks(cCtx *cli.Context) error {
 	homedir, err := os.UserHomeDir()
 	if err != nil {
 		log.Fatal(err)
@@ -29,17 +50,6 @@ func main() {
 
 	var annotationDbPath string = fmt.Sprintf("file:%s/Library/Containers/com.apple.iBooksX/Data/Documents/AEAnnotation/AEAnnotation_v10312011_1727_local.sqlite?cache=shared&mode=ro", homedir)
 	var bookDbPath string = fmt.Sprintf("file:%s/Library/Containers/com.apple.iBooksX/Data/Documents/BKLibrary/BKLibrary-1-091020131601.sqlite?cache=shared&mode=ro", homedir)
-
-	fmt.Println(annotationDbPath)
-	fmt.Println(bookDbPath)
-
-	//sql.Register("sqlite3_hooked",
-	//	&sqlite3.SQLiteDriver{
-	//		ConnectHook: func(conn *sqlite3.SQLiteConn) error {
-	//			conn.Exec("ATTACH DATABASE '"+annotationDbPath+"' AS 'annotations';", nil)
-	//			return nil
-	//		},
-	//	})
 
 	db, err := sql.Open("sqlite3", fmt.Sprintf("%s", bookDbPath))
 	if err != nil {
@@ -92,5 +102,5 @@ func main() {
 	}
 
 	t.Render()
-
+	return nil
 }
