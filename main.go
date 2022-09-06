@@ -6,21 +6,10 @@ import (
 	"github.com/jedib0t/go-pretty/v6/table"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/urfave/cli/v2"
+	dbThings "ibooks_notes_exporter/db"
 	"log"
 	"os"
 )
-
-const getAllBooksDbQueryConstant = `
-	select 
-		ZBKLIBRARYASSET.ZASSETID,
-		ZBKLIBRARYASSET.ZTITLE,
-		ZBKLIBRARYASSET.ZAUTHOR,    
-		count(a.ZAEANNOTATION.Z_PK)
-	from ZBKLIBRARYASSET left join a.ZAEANNOTATION
-		on a.ZAEANNOTATION.ZANNOTATIONASSETID = ZBKLIBRARYASSET.ZASSETID
-	WHERE a.ZAEANNOTATION.ZANNOTATIONSELECTEDTEXT NOT NULL
-	GROUP BY ZBKLIBRARYASSET.ZASSETID;
-`
 
 func main() {
 	app := &cli.App{
@@ -32,6 +21,17 @@ func main() {
 				Name:   "books",
 				Usage:  "Get list of the books with notes and highlights",
 				Action: getListOfBooks,
+			},
+			{
+				Name:      "export",
+				HideHelp:  false,
+				Usage:     "Export all notes and highlights from book with [BOOK_ID]",
+				UsageText: "Export all notes and highlights from book with [BOOK_ID]",
+				Action:    exportNotesAndHighlights,
+				ArgsUsage: "ibooks_notes_exporter export BOOK_ID_GOES_HERE",
+				Flags: []cli.Flag{
+					&cli.BoolFlag{Name: "book_id"},
+				},
 			},
 		},
 	}
@@ -72,9 +72,8 @@ func getListOfBooks(cCtx *cli.Context) error {
 		book_author string
 		number      int
 	)
-	rows, err := db.Query(getAllBooksDbQueryConstant)
+	rows, err := db.Query(dbThings.GetAllBooksDbQueryConstant)
 	if err != nil {
-		log.Println(getAllBooksDbQueryConstant)
 		log.Fatal(err)
 	}
 	defer rows.Close()
@@ -82,25 +81,89 @@ func getListOfBooks(cCtx *cli.Context) error {
 	// Render table with books
 	t := table.NewWriter()
 	t.SetOutputMirror(os.Stdout)
-	t.AppendHeader(table.Row{"Book ID", "Number of notes", "Title and Author"})
+	t.AppendHeader(table.Row{"SingleBook ID", "Number of notes", "Title and Author"})
 
 	for rows.Next() {
 		err := rows.Scan(&book_id, &book_title, &book_author, &number)
 		if err != nil {
 			log.Fatal(err)
 		}
-		//fmt.Println(book_id, book_title, book_author)
 		t.AppendRows([]table.Row{
-			//{1, "Arya", "Stark", 3000},
 			{book_id, number, fmt.Sprintf("%s — %s", book_title, book_author)},
 		})
-
 	}
+
 	err = rows.Err()
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	t.Render()
+	return nil
+}
+
+func exportNotesAndHighlights(cCtx *cli.Context) error {
+	homedir, err := os.UserHomeDir()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	var annotationDbPath string = fmt.Sprintf("file:%s/Library/Containers/com.apple.iBooksX/Data/Documents/AEAnnotation/AEAnnotation_v10312011_1727_local.sqlite?cache=shared&mode=ro", homedir)
+	var bookDbPath string = fmt.Sprintf("file:%s/Library/Containers/com.apple.iBooksX/Data/Documents/BKLibrary/BKLibrary-1-091020131601.sqlite?cache=shared&mode=ro", homedir)
+
+	db, err := sql.Open("sqlite3", fmt.Sprintf("%s", bookDbPath))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	defer db.Close()
+
+	// Attach second SQLLite database file to connection
+	_, err = db.Exec(fmt.Sprintf("attach database '%s' as a", annotationDbPath))
+	if err != nil {
+		log.Println(fmt.Sprintf("attach database '%s' as a", annotationDbPath))
+		log.Fatal(err)
+	}
+
+	if cCtx.Args().Len() != 1 {
+		log.Fatal("For exporting notes and highlights, you have to pass BOOK_ID: ibooks_notes_exporter export BOOK_ID_GOES_HERE")
+	}
+
+	fmt.Println(cCtx.Args().Get(0))
+
+	var book dbThings.SingleBook
+	row := db.QueryRow(dbThings.GetBookDataById, cCtx.Args().Get(0))
+	err = row.Scan(&book.Name, &book.Author)
+	if err != nil {
+		//log.Fatal()
+		log.Println(err)
+		log.Fatal("SingleBook is not found in iBooks!")
+	}
+
+	// Render MarkDown into STDOUT
+	fmt.Println(fmt.Sprintf("# %s — %s", book.Name, book.Author))
+
+	rows, err := db.Query(dbThings.GetNotesHighlightsById, cCtx.Args().Get(0))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	var singleHightLightNote dbThings.SingleHighlightNote
+	for rows.Next() {
+		err := rows.Scan(&singleHightLightNote.HightLight, &singleHightLightNote.Note)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		fmt.Println(fmt.Sprintf("> %s", singleHightLightNote.HightLight))
+
+		if singleHightLightNote.Note.Valid {
+			fmt.Println(fmt.Sprintf("\n%s", singleHightLightNote.Note.String))
+		}
+
+		fmt.Println("<hr>\n\n")
+
+	}
+
 	return nil
 }
