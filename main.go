@@ -1,7 +1,6 @@
 package main
 
 import (
-	"database/sql"
 	"fmt"
 	"github.com/jedib0t/go-pretty/v6/table"
 	_ "github.com/mattn/go-sqlite3"
@@ -43,35 +42,9 @@ func main() {
 }
 
 func getListOfBooks(cCtx *cli.Context) error {
-	homedir, err := os.UserHomeDir()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	var annotationDbPath string = fmt.Sprintf("file:%s/Library/Containers/com.apple.iBooksX/Data/Documents/AEAnnotation/AEAnnotation_v10312011_1727_local.sqlite?cache=shared&mode=ro", homedir)
-	var bookDbPath string = fmt.Sprintf("file:%s/Library/Containers/com.apple.iBooksX/Data/Documents/BKLibrary/BKLibrary-1-091020131601.sqlite?cache=shared&mode=ro", homedir)
-
-	db, err := sql.Open("sqlite3", fmt.Sprintf("%s", bookDbPath))
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	defer db.Close()
-
-	// Attach second SQLLite database file to connection
-	_, err = db.Exec(fmt.Sprintf("attach database '%s' as a", annotationDbPath))
-	if err != nil {
-		log.Println(fmt.Sprintf("attach database '%s' as a", annotationDbPath))
-		log.Fatal(err)
-	}
+	db := dbThings.GetDBConnection()
 
 	// Getting a list of books
-	var (
-		book_id     string
-		book_title  string
-		book_author string
-		number      int
-	)
 	rows, err := db.Query(dbThings.GetAllBooksDbQueryConstant)
 	if err != nil {
 		log.Fatal(err)
@@ -83,13 +56,14 @@ func getListOfBooks(cCtx *cli.Context) error {
 	t.SetOutputMirror(os.Stdout)
 	t.AppendHeader(table.Row{"SingleBook ID", "Number of notes", "Title and Author"})
 
+	var singleBook dbThings.SingleBookInList
 	for rows.Next() {
-		err := rows.Scan(&book_id, &book_title, &book_author, &number)
+		err := rows.Scan(&singleBook.Id, &singleBook.Title, &singleBook.Author, &singleBook.Number)
 		if err != nil {
 			log.Fatal(err)
 		}
 		t.AppendRows([]table.Row{
-			{book_id, number, fmt.Sprintf("%s — %s", book_title, book_author)},
+			{singleBook.Id, singleBook.Number, fmt.Sprintf("%s — %s", singleBook.Title, singleBook.Author)},
 		})
 	}
 
@@ -103,27 +77,8 @@ func getListOfBooks(cCtx *cli.Context) error {
 }
 
 func exportNotesAndHighlights(cCtx *cli.Context) error {
-	homedir, err := os.UserHomeDir()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	var annotationDbPath string = fmt.Sprintf("file:%s/Library/Containers/com.apple.iBooksX/Data/Documents/AEAnnotation/AEAnnotation_v10312011_1727_local.sqlite?cache=shared&mode=ro", homedir)
-	var bookDbPath string = fmt.Sprintf("file:%s/Library/Containers/com.apple.iBooksX/Data/Documents/BKLibrary/BKLibrary-1-091020131601.sqlite?cache=shared&mode=ro", homedir)
-
-	db, err := sql.Open("sqlite3", fmt.Sprintf("%s", bookDbPath))
-	if err != nil {
-		log.Fatal(err)
-	}
-
+	db := dbThings.GetDBConnection()
 	defer db.Close()
-
-	// Attach second SQLLite database file to connection
-	_, err = db.Exec(fmt.Sprintf("attach database '%s' as a", annotationDbPath))
-	if err != nil {
-		log.Println(fmt.Sprintf("attach database '%s' as a", annotationDbPath))
-		log.Fatal(err)
-	}
 
 	if cCtx.Args().Len() != 1 {
 		log.Fatal("For exporting notes and highlights, you have to pass BOOK_ID: ibooks_notes_exporter export BOOK_ID_GOES_HERE")
@@ -133,7 +88,7 @@ func exportNotesAndHighlights(cCtx *cli.Context) error {
 
 	var book dbThings.SingleBook
 	row := db.QueryRow(dbThings.GetBookDataById, cCtx.Args().Get(0))
-	err = row.Scan(&book.Name, &book.Author)
+	err := row.Scan(&book.Name, &book.Author)
 	if err != nil {
 		//log.Fatal()
 		log.Println(err)

@@ -13,3 +13,10 @@ type SingleHighlightNote struct {
 	HightLight string
 	Note       sql.NullString
 }
+
+type SingleBookInList struct {
+	Id     string
+	Title  string
+	Author string
+	Number int
+}
