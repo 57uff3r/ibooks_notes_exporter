@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
+	"regexp"
 )
 
 func GetDBConnection() *sql.DB {
@@ -13,8 +15,13 @@ func GetDBConnection() *sql.DB {
 		log.Fatal(err)
 	}
 
-	var annotationDbPath string = fmt.Sprintf("file:%s/Library/Containers/com.apple.iBooksX/Data/Documents/AEAnnotation/AEAnnotation_v10312011_1727_local.sqlite?cache=shared&mode=ro", homedir)
-	var bookDbPath string = fmt.Sprintf("file:%s/Library/Containers/com.apple.iBooksX/Data/Documents/BKLibrary/BKLibrary-1-091020131601.sqlite?cache=shared&mode=ro", homedir)
+	annotationDbSearchPatch := fmt.Sprintf("%s/Library/Containers/com.apple.iBooksX/Data/Documents/AEAnnotation", homedir)
+	booksDbSearchPatch := fmt.Sprintf("%s/Library/Containers/com.apple.iBooksX/Data/Documents/BKLibrary", homedir)
+	annotationsFname := findByExt(annotationDbSearchPatch)
+	booksFname := findByExt(booksDbSearchPatch)
+
+	var annotationDbPath string = fmt.Sprintf("file:%s/%s", annotationDbSearchPatch, annotationsFname)
+	var bookDbPath string = fmt.Sprintf("file:%s/%s", booksDbSearchPatch, booksFname)
 
 	db, err := sql.Open("sqlite3", fmt.Sprintf("%s", bookDbPath))
 	if err != nil {
@@ -29,4 +36,20 @@ func GetDBConnection() *sql.DB {
 	}
 
 	return db
+}
+
+func findByExt(path string) string {
+	ext := ".sqlite$"
+	var fname string
+	filepath.Walk(path, func(path string, f os.FileInfo, _ error) error {
+		if !f.IsDir() {
+			r, err := regexp.MatchString(ext, f.Name())
+			if err == nil && r {
+				fname = f.Name()
+			}
+		}
+		return nil
+	})
+
+	return fname
 }
