@@ -28,4 +28,4 @@ brews:
   -
     tap:
       owner: 57uff3r
-      name: homebrew-ibooks-notes-exporter
+      name: homebrew-mac-apps
