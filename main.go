@@ -96,7 +96,7 @@ func exportNotesAndHighlights(cCtx *cli.Context) error {
 	}
 
 	// Render MarkDown into STDOUT
-	fmt.Println(fmt.Sprintf("# %s — %s", book.Name, book.Author))
+	fmt.Println(fmt.Sprintf("# %s — %s\n", book.Name, book.Author))
 
 	rows, err := db.Query(dbThings.GetNotesHighlightsById, cCtx.Args().Get(0))
 	if err != nil {
@@ -116,7 +116,7 @@ func exportNotesAndHighlights(cCtx *cli.Context) error {
 			fmt.Println(fmt.Sprintf("\n%s", singleHightLightNote.Note.String))
 		}
 
-		fmt.Println("<hr>\n\n")
+		fmt.Println("---\n\n")
 
 	}
 
