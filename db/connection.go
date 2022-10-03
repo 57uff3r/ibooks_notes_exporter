@@ -2,6 +2,7 @@ package db
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -20,18 +21,28 @@ func GetDBConnection() *sql.DB {
 	annotationsFname := findByExt(annotationDbSearchPatch)
 	booksFname := findByExt(booksDbSearchPatch)
 
-	var annotationDbPath string = fmt.Sprintf("file:%s/%s", annotationDbSearchPatch, annotationsFname)
-	var bookDbPath string = fmt.Sprintf("file:%s/%s", booksDbSearchPatch, booksFname)
+	var annotationDbPathWithoutPrefix string = fmt.Sprintf("%s/%s", annotationDbSearchPatch, annotationsFname)
+	var bookDbPathWithoutPrefix string = fmt.Sprintf("%s/%s", booksDbSearchPatch, booksFname)
 
-	db, err := sql.Open("sqlite3", fmt.Sprintf("%s", bookDbPath))
+	var annotationDbPathWithPrefix string = fmt.Sprintf("file:%s/%s", annotationDbSearchPatch, annotationsFname)
+	var bookDbPathWithPrefix string = fmt.Sprintf("file:%s/%s", booksDbSearchPatch, booksFname)
+
+	if _, err := os.Stat(annotationDbPathWithoutPrefix); errors.Is(err, os.ErrNotExist) {
+		log.Fatal("iBooks files are not found.")
+	}
+	if _, err := os.Stat(bookDbPathWithoutPrefix); errors.Is(err, os.ErrNotExist) {
+		log.Fatal("iBooks files are not found.")
+	}
+
+	db, err := sql.Open("sqlite3", fmt.Sprintf("%s", bookDbPathWithPrefix))
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	// Attach second SQLLite database file to connection
-	_, err = db.Exec(fmt.Sprintf("attach database '%s' as a", annotationDbPath))
+	_, err = db.Exec(fmt.Sprintf("attach database '%s' as a", annotationDbPathWithPrefix))
 	if err != nil {
-		log.Println(fmt.Sprintf("attach database '%s' as a", annotationDbPath))
+		log.Println(fmt.Sprintf("attach database '%s' as a", annotationDbPathWithPrefix))
 		log.Fatal(err)
 	}
 

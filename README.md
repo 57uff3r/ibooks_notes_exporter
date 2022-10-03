@@ -7,6 +7,8 @@ You have to manually copy-paste quotes and your thoughts. ibooks-notes-exporter 
 that problem. it's a little program that gets all your notes and highlights from iBooks and
 exports them into markdown.
 
+Note! **ibooks-notes-exporter** can only extract notes from EPUB files.
+
 
 ## Installation
 
