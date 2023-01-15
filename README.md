@@ -53,3 +53,21 @@ Your feedback and pull requests are much appreciated.
 Feel free to send your comments and thoughts to [me@akorchak.software](mailto:me@akorchak.software)
 
 
+## Changelog
+
+**0.0.3**
+
+Bug fix: worng  order of notes and highlights. Quick and dirty fix, better solution requires to implement a parser 
+for ISO/IEC 23736-6:2020 standard (EPUB Canonical Fragment Identifier or epubcfi) and this will be done in next 
+versions.
+
+**0.0.2**
+
+Markdown fix: missing line break
+
+
+**0.0.1**
+
+Initial release
+
+
