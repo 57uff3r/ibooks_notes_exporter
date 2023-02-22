@@ -55,6 +55,10 @@ Feel free to send your comments and thoughts to [me@akorchak.software](mailto:me
 
 ## Changelog
 
+**0.0.4**
+
+Fix for long titles made by @[NSBum](https://github.com/NSBum)
+
 **0.0.3**
 
 Bug fix: worng  order of notes and highlights. Quick and dirty fix, better solution requires to implement a parser 
