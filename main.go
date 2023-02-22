@@ -8,6 +8,8 @@ import (
 	dbThings "ibooks_notes_exporter/db"
 	"log"
 	"os"
+	"strings"
+	"unicode"
 )
 
 func main() {
@@ -41,6 +43,55 @@ func main() {
 
 }
 
+func GetLastName(name string) string {
+	// Split the input string into words
+	words := strings.Fields(name)
+	
+	// Search backwards from the end of the string for the first non-title word
+	var lastName string
+	for i := len(words) - 1; i >= 0; i-- {
+		if !isHonorific(words[i]) {
+			lastName = words[i]
+			break
+		}
+	}
+	
+	// Remove any trailing commas or periods from the last name
+	lastName = strings.TrimSuffix(lastName, ",")
+	lastName = strings.TrimSuffix(lastName, ".")
+	
+	// Return the last name in parentheses
+	return "(" + lastName + ")"
+}
+
+// Helper function to check if a word is an honorific title
+func isHonorific(word string) bool {
+	return len(word) <= 3 && unicode.IsUpper(rune(word[0])) && (word[len(word)-1] == '.' || word[len(word)-1] == ',')
+}
+
+func GetLastNames(names string) string {
+	// Split the input string into individual names
+	nameList := strings.Split(names, " & ")
+	
+	// If there is only one name, just return the last name
+	if len(nameList) == 1 {
+		return GetLastName(nameList[0])
+	}
+	
+	// If there are two names, combine the last names with "&"
+	if len(nameList) == 2 {
+		return GetLastName(nameList[0]) + " & " + GetLastName(nameList[1])
+	}
+	
+	// If there are more than two names, combine the first name and last names with "&"
+	firstName := nameList[0]
+	lastNames := make([]string, len(nameList)-1)
+	for i, name := range nameList[1:] {
+		lastNames[i] = GetLastName(name)
+	}
+	return GetLastName(firstName) + " & " + strings.Join(lastNames, " & ")
+}
+
 func getListOfBooks(cCtx *cli.Context) error {
 	db := dbThings.GetDBConnection()
 
@@ -54,7 +105,7 @@ func getListOfBooks(cCtx *cli.Context) error {
 	// Render table with books
 	t := table.NewWriter()
 	t.SetOutputMirror(os.Stdout)
-	t.AppendHeader(table.Row{"SingleBook ID", "Number of notes", "Title and Author"})
+	t.AppendHeader(table.Row{"SingleBook ID", "# notes", "Title and Author"})
 
 	var singleBook dbThings.SingleBookInList
 	for rows.Next() {
@@ -62,8 +113,16 @@ func getListOfBooks(cCtx *cli.Context) error {
 		if err != nil {
 			log.Fatal(err)
 		}
+		// truncate title as needed so that table doesn't wrap when terminal width is narrow
+		truncatedTitle := singleBook.Title
+		if len(singleBook.Title) > 30 {
+			truncatedTitle = singleBook.Title[:30] + "..."
+		}
+		// shortened author name(s)
+		standardizedAuthor := GetLastNames(singleBook.Author)
+		// The title and author looks like: "My Great Book (Doe)"
 		t.AppendRows([]table.Row{
-			{singleBook.Id, singleBook.Number, fmt.Sprintf("%s — %s", singleBook.Title, singleBook.Author)},
+			{singleBook.Id, singleBook.Number, fmt.Sprintf("%s %s", truncatedTitle, standardizedAuthor)},
 		})
 	}
 
