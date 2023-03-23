@@ -177,10 +177,10 @@ func exportNotesAndHighlights(cCtx *cli.Context) error {
 			log.Fatal(err)
 		}
 
-		fmt.Println(fmt.Sprintf("> %s", singleHightLightNote.HightLight))
+		fmt.Println(fmt.Sprintf("> %s", strings.Replace(singleHightLightNote.HightLight, "\n", "", -1)))
 
 		if singleHightLightNote.Note.Valid {
-			fmt.Println(fmt.Sprintf("\n%s", singleHightLightNote.Note.String))
+			fmt.Println(fmt.Sprintf("\n%s", strings.Replace(singleHightLightNote.Note.String, "\n", "", -1)))
 		}
 
 		fmt.Println("---\n\n")
