@@ -43,6 +43,11 @@ func main() {
 						Name:     "book_id",
 						Required: true,
 					},
+					&cli.IntFlag{
+						Name:     "skip_first_x_notes",
+						Value:    0,
+						Required: false,
+					},
 				},
 			},
 		},
@@ -151,6 +156,7 @@ func exportNotesAndHighlights(cCtx *cli.Context) error {
 	defer db.Close()
 
 	bookId := cCtx.String("book_id")
+	skipXNotes := cCtx.Int("skip_first_x_notes")
 	fmt.Println(bookId)
 
 	var book dbThings.SingleBook
@@ -165,7 +171,7 @@ func exportNotesAndHighlights(cCtx *cli.Context) error {
 	// Render MarkDown into STDOUT
 	fmt.Println(fmt.Sprintf("# %s — %s\n", book.Name, book.Author))
 
-	rows, err := db.Query(dbThings.GetNotesHighlightsById, bookId)
+	rows, err := db.Query(dbThings.GetNotesHighlightsById, bookId, skipXNotes)
 	if err != nil {
 		log.Fatal(err)
 	}
