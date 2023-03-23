@@ -17,11 +17,19 @@ func main() {
 		Name:    "Ibooks notes exporter",
 		Usage:   "Export your records from Apple iBooks",
 		Authors: []*cli.Author{{Name: "Andrey Korchak", Email: "me@akorchak.software"}},
+		Version: "v0.0.5",
 		Commands: []*cli.Command{
 			{
 				Name:   "books",
 				Usage:  "Get list of the books with notes and highlights",
 				Action: getListOfBooks,
+			},
+			{
+				Name: "version",
+				Action: func(context *cli.Context) error {
+					fmt.Printf("%s\n", context.App.Version)
+					return nil
+				},
 			},
 			{
 				Name:      "export",
@@ -46,7 +54,7 @@ func main() {
 func GetLastName(name string) string {
 	// Split the input string into words
 	words := strings.Fields(name)
-	
+
 	// Search backwards from the end of the string for the first non-title word
 	var lastName string
 	for i := len(words) - 1; i >= 0; i-- {
@@ -55,11 +63,11 @@ func GetLastName(name string) string {
 			break
 		}
 	}
-	
+
 	// Remove any trailing commas or periods from the last name
 	lastName = strings.TrimSuffix(lastName, ",")
 	lastName = strings.TrimSuffix(lastName, ".")
-	
+
 	// Return the last name in parentheses
 	return "(" + lastName + ")"
 }
@@ -72,17 +80,17 @@ func isHonorific(word string) bool {
 func GetLastNames(names string) string {
 	// Split the input string into individual names
 	nameList := strings.Split(names, " & ")
-	
+
 	// If there is only one name, just return the last name
 	if len(nameList) == 1 {
 		return GetLastName(nameList[0])
 	}
-	
+
 	// If there are two names, combine the last names with "&"
 	if len(nameList) == 2 {
 		return GetLastName(nameList[0]) + " & " + GetLastName(nameList[1])
 	}
-	
+
 	// If there are more than two names, combine the first name and last names with "&"
 	firstName := nameList[0]
 	lastNames := make([]string, len(nameList)-1)
