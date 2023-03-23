@@ -39,7 +39,10 @@ func main() {
 				Action:    exportNotesAndHighlights,
 				ArgsUsage: "ibooks_notes_exporter export BOOK_ID_GOES_HERE",
 				Flags: []cli.Flag{
-					&cli.BoolFlag{Name: "book_id"},
+					&cli.StringFlag{
+						Name:     "book_id",
+						Required: true,
+					},
 				},
 			},
 		},
@@ -147,14 +150,11 @@ func exportNotesAndHighlights(cCtx *cli.Context) error {
 	db := dbThings.GetDBConnection()
 	defer db.Close()
 
-	if cCtx.Args().Len() != 1 {
-		log.Fatal("For exporting notes and highlights, you have to pass BOOK_ID: ibooks_notes_exporter export BOOK_ID_GOES_HERE")
-	}
-
-	fmt.Println(cCtx.Args().Get(0))
+	bookId := cCtx.String("book_id")
+	fmt.Println(bookId)
 
 	var book dbThings.SingleBook
-	row := db.QueryRow(dbThings.GetBookDataById, cCtx.Args().Get(0))
+	row := db.QueryRow(dbThings.GetBookDataById, bookId)
 	err := row.Scan(&book.Name, &book.Author)
 	if err != nil {
 		//log.Fatal()
@@ -165,7 +165,7 @@ func exportNotesAndHighlights(cCtx *cli.Context) error {
 	// Render MarkDown into STDOUT
 	fmt.Println(fmt.Sprintf("# %s — %s\n", book.Name, book.Author))
 
-	rows, err := db.Query(dbThings.GetNotesHighlightsById, cCtx.Args().Get(0))
+	rows, err := db.Query(dbThings.GetNotesHighlightsById, bookId)
 	if err != nil {
 		log.Fatal(err)
 	}
