@@ -43,9 +43,15 @@ And then you can export all your notes from the book into a markdown file.
 
 
 ```shell
-❯ ibooks_notes_exporter export 4BAE5DA3C95788753173EAE8C63E6034 > ./LoremImpsum.md
+ibooks_notes_exporter export --book_id 4BAE5DA3C95788753173EAE8C63E6034 > ./LoremImpsum.md
 ```
 
+You also can export your notes partially by skipping  first X notes:
+
+```shell
+ibooks_notes_exporter export --book_id 4BAE5DA3C95788753173EAE8C63E6034 --skip_first_x_notes 20 > ./LoremImpsum.md 
+```
+In this example, the exporter will skip first 20 notes and export the rest.
 
 ## Feedback and contribution
 
@@ -54,6 +60,13 @@ Feel free to send your comments and thoughts to [me@akorchak.software](mailto:me
 
 
 ## Changelog
+
+
+**0.0.5**
+
+* New CLI syntax
+* **--skip_first_x_notes** flag
+* Fix for [Issue #5](https://github.com/57uff3r/ibooks_notes_exporter/issues/5) ('some bug in chinese book')
 
 **0.0.4**
 
