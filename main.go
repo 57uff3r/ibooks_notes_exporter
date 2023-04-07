@@ -178,12 +178,12 @@ func exportNotesAndHighlights(cCtx *cli.Context) error {
 
 	var singleHightLightNote dbThings.SingleHighlightNote
 	for rows.Next() {
-		err := rows.Scan(&singleHightLightNote.HightLight, &singleHightLightNote.Note)
+		err := rows.Scan(&singleHightLightNote.HightLight, &singleHightLightNote.Note, &singleHightLightNote.Style)
 		if err != nil {
 			log.Fatal(err)
 		}
 
-		fmt.Println(fmt.Sprintf("> %s", strings.Replace(singleHightLightNote.HightLight, "\n", "", -1)))
+		fmt.Println(fmt.Sprintf("> <span style='background-color:%s;color:black'>%s</span>",styleToColor(singleHightLightNote.Style),strings.Replace(singleHightLightNote.HightLight, "\n", "", -1)))
 
 		if singleHightLightNote.Note.Valid {
 			fmt.Println(fmt.Sprintf("\n%s", strings.Replace(singleHightLightNote.Note.String, "\n", "", -1)))
@@ -194,4 +194,26 @@ func exportNotesAndHighlights(cCtx *cli.Context) error {
 	}
 
 	return nil
+}
+
+func styleToColor(style int) string {
+	switch style {
+	case 1: 
+		// green
+		return "#a8e196"
+	case 2:
+		// blue
+		return "#a5c3ff" 
+	case 3: 
+		// yellow
+		return "#fde15c"
+	case 4: 
+		// pink
+		return "#ffaabf"	
+	case 5: 
+		// purple
+		return "#cdbbfb"	
+	default:
+		return ""		
+	}
 }
