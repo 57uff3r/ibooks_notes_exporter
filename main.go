@@ -2,14 +2,15 @@ package main
 
 import (
 	"fmt"
-	"github.com/jedib0t/go-pretty/v6/table"
-	_ "github.com/mattn/go-sqlite3"
-	"github.com/urfave/cli/v2"
 	dbThings "ibooks_notes_exporter/db"
 	"log"
 	"os"
 	"strings"
 	"unicode"
+
+	"github.com/jedib0t/go-pretty/v6/table"
+	_ "github.com/mattn/go-sqlite3"
+	"github.com/urfave/cli/v2"
 )
 
 func main() {
@@ -183,10 +184,10 @@ func exportNotesAndHighlights(cCtx *cli.Context) error {
 			log.Fatal(err)
 		}
 
-		fmt.Println(fmt.Sprintf("> %s", strings.Replace(singleHightLightNote.HightLight, "\n", "", -1)))
+		fmt.Println(fmt.Sprintf("> %s", strings.Replace(singleHightLightNote.HightLight, "\n", " ", -1)))
 
 		if singleHightLightNote.Note.Valid {
-			fmt.Println(fmt.Sprintf("\n%s", strings.Replace(singleHightLightNote.Note.String, "\n", "", -1)))
+			fmt.Println(fmt.Sprintf("\n%s", strings.Replace(singleHightLightNote.Note.String, "\n", " ", -1)))
 		}
 
 		fmt.Println("---\n\n")
