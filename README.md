@@ -62,6 +62,14 @@ Feel free to send your comments and thoughts to [me@akorchak.software](mailto:me
 ## Changelog
 
 
+**0.0.6**
+
+* Updated Go from 1.19 to 1.23
+* Migrated CLI framework from urfave/cli v2 to v3
+* Switched SQLite driver from mattn/go-sqlite3 to modernc.org/sqlite (pure Go, no CGO needed)
+* Updated go-pretty from v6.4.4 to v6.7.10
+* Updated goreleaser config and GitHub Actions to current versions
+
 **0.0.5**
 
 * New CLI syntax
