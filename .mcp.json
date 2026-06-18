@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "ibooks": {
+      "command": "/Users/ak/Documents/Projects/PersonalBrand/ibooks_notes_exporter/ibooks_notes_exporter",
+      "args": ["mcp"]
+    }
+  }
+}

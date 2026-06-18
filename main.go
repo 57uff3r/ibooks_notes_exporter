@@ -34,6 +34,13 @@ func main() {
 				},
 			},
 			{
+				Name:  "mcp",
+				Usage: "Start MCP server for AI agents (stdio transport)",
+				Action: func(ctx context.Context, cmd *cli.Command) error {
+					return runMCPServer()
+				},
+			},
+			{
 				Name:      "export",
 				Usage:     "Export all notes and highlights from book with [BOOK_ID]",
 				UsageText: "ibooks_notes_exporter export --book_id BOOK_ID_GOES_HERE",
@@ -172,7 +179,7 @@ func exportNotesAndHighlights(ctx context.Context, cmd *cli.Command) error {
 			fmt.Println(fmt.Sprintf("\n%s", strings.Replace(singleHightLightNote.Note.String, "\n", "", -1)))
 		}
 
-		fmt.Println("---\n\n")
+		fmt.Print("---\n\n\n")
 	}
 
 	return nil
