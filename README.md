@@ -204,6 +204,11 @@ Feel free to send your comments and thoughts to [me@akorchak.software](mailto:me
 ## Changelog
 
 
+**0.0.7**
+
+* Added MCP server mode (`ibooks_notes_exporter mcp`) with three tools: `list_books`, `get_notes`, `search_notes`
+* Fixed duplicate highlights in search results caused by iBooks sync
+
 **0.0.6**
 
 * Updated Go from 1.19 to 1.23
@@ -211,7 +216,6 @@ Feel free to send your comments and thoughts to [me@akorchak.software](mailto:me
 * Switched SQLite driver from mattn/go-sqlite3 to modernc.org/sqlite (pure Go, no CGO needed)
 * Updated go-pretty from v6.4.4 to v6.7.10
 * Updated goreleaser config and GitHub Actions to current versions
-* Added MCP server mode (`ibooks_notes_exporter mcp`)
 
 **0.0.5**
 

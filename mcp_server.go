@@ -16,7 +16,7 @@ import (
 func runMCPServer() error {
 	s := server.NewMCPServer(
 		"ibooks-notes",
-		"0.0.6",
+		"0.0.7",
 		server.WithToolCapabilities(true),
 	)
 
