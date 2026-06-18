@@ -16,33 +16,29 @@ func GetDBConnection() *sql.DB {
 		log.Fatal(err)
 	}
 
-	annotationDbSearchPatch := fmt.Sprintf("%s/Library/Containers/com.apple.iBooksX/Data/Documents/AEAnnotation", homedir)
-	booksDbSearchPatch := fmt.Sprintf("%s/Library/Containers/com.apple.iBooksX/Data/Documents/BKLibrary", homedir)
-	annotationsFname := findByExt(annotationDbSearchPatch)
-	booksFname := findByExt(booksDbSearchPatch)
+	annotationDbSearchPath := fmt.Sprintf("%s/Library/Containers/com.apple.iBooksX/Data/Documents/AEAnnotation", homedir)
+	booksDbSearchPath := fmt.Sprintf("%s/Library/Containers/com.apple.iBooksX/Data/Documents/BKLibrary", homedir)
+	annotationsFname := findByExt(annotationDbSearchPath)
+	booksFname := findByExt(booksDbSearchPath)
 
-	var annotationDbPathWithoutPrefix string = fmt.Sprintf("%s/%s", annotationDbSearchPatch, annotationsFname)
-	var bookDbPathWithoutPrefix string = fmt.Sprintf("%s/%s", booksDbSearchPatch, booksFname)
+	annotationDbPath := fmt.Sprintf("%s/%s", annotationDbSearchPath, annotationsFname)
+	bookDbPath := fmt.Sprintf("%s/%s", booksDbSearchPath, booksFname)
 
-	var annotationDbPathWithPrefix string = fmt.Sprintf("file:%s/%s", annotationDbSearchPatch, annotationsFname)
-	var bookDbPathWithPrefix string = fmt.Sprintf("file:%s/%s", booksDbSearchPatch, booksFname)
-
-	if _, err := os.Stat(annotationDbPathWithoutPrefix); errors.Is(err, os.ErrNotExist) {
+	if _, err := os.Stat(annotationDbPath); errors.Is(err, os.ErrNotExist) {
 		log.Fatal("iBooks files are not found.")
 	}
-	if _, err := os.Stat(bookDbPathWithoutPrefix); errors.Is(err, os.ErrNotExist) {
+	if _, err := os.Stat(bookDbPath); errors.Is(err, os.ErrNotExist) {
 		log.Fatal("iBooks files are not found.")
 	}
 
-	db, err := sql.Open("sqlite3", fmt.Sprintf("%s", bookDbPathWithPrefix))
+	db, err := sql.Open("sqlite", bookDbPath)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	// Attach second SQLLite database file to connection
-	_, err = db.Exec(fmt.Sprintf("attach database '%s' as a", annotationDbPathWithPrefix))
+	_, err = db.Exec(fmt.Sprintf("attach database '%s' as a", annotationDbPath))
 	if err != nil {
-		log.Println(fmt.Sprintf("attach database '%s' as a", annotationDbPathWithPrefix))
+		log.Println(fmt.Sprintf("attach database '%s' as a", annotationDbPath))
 		log.Fatal(err)
 	}
 

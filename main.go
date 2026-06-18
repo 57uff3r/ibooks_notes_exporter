@@ -1,23 +1,24 @@
 package main
 
 import (
+	"context"
 	"fmt"
-	"github.com/jedib0t/go-pretty/v6/table"
-	_ "github.com/mattn/go-sqlite3"
-	"github.com/urfave/cli/v2"
-	dbThings "ibooks_notes_exporter/db"
 	"log"
 	"os"
 	"strings"
 	"unicode"
+
+	"github.com/jedib0t/go-pretty/v6/table"
+	"github.com/urfave/cli/v3"
+	dbThings "ibooks_notes_exporter/db"
+	_ "modernc.org/sqlite"
 )
 
 func main() {
-	app := &cli.App{
-		Name:    "Ibooks notes exporter",
+	cmd := &cli.Command{
+		Name:    "ibooks_notes_exporter",
 		Usage:   "Export your records from Apple iBooks",
-		Authors: []*cli.Author{{Name: "Andrey Korchak", Email: "me@akorchak.software"}},
-		Version: "v0.0.5",
+		Version: "v0.0.6",
 		Commands: []*cli.Command{
 			{
 				Name:   "books",
@@ -25,45 +26,40 @@ func main() {
 				Action: getListOfBooks,
 			},
 			{
-				Name: "version",
-				Action: func(context *cli.Context) error {
-					fmt.Printf("%s\n", context.App.Version)
+				Name:  "version",
+				Usage: "Print version",
+				Action: func(ctx context.Context, cmd *cli.Command) error {
+					fmt.Printf("%s\n", cmd.Root().Version)
 					return nil
 				},
 			},
 			{
 				Name:      "export",
-				HideHelp:  false,
 				Usage:     "Export all notes and highlights from book with [BOOK_ID]",
-				UsageText: "Export all notes and highlights from book with [BOOK_ID]",
+				UsageText: "ibooks_notes_exporter export --book_id BOOK_ID_GOES_HERE",
 				Action:    exportNotesAndHighlights,
-				ArgsUsage: "ibooks_notes_exporter export BOOK_ID_GOES_HERE",
 				Flags: []cli.Flag{
 					&cli.StringFlag{
 						Name:     "book_id",
 						Required: true,
 					},
 					&cli.IntFlag{
-						Name:     "skip_first_x_notes",
-						Value:    0,
-						Required: false,
+						Name:  "skip_first_x_notes",
+						Value: 0,
 					},
 				},
 			},
 		},
 	}
 
-	if err := app.Run(os.Args); err != nil {
+	if err := cmd.Run(context.Background(), os.Args); err != nil {
 		log.Fatal(err)
 	}
-
 }
 
 func GetLastName(name string) string {
-	// Split the input string into words
 	words := strings.Fields(name)
 
-	// Search backwards from the end of the string for the first non-title word
 	var lastName string
 	for i := len(words) - 1; i >= 0; i-- {
 		if !isHonorific(words[i]) {
@@ -72,34 +68,27 @@ func GetLastName(name string) string {
 		}
 	}
 
-	// Remove any trailing commas or periods from the last name
 	lastName = strings.TrimSuffix(lastName, ",")
 	lastName = strings.TrimSuffix(lastName, ".")
 
-	// Return the last name in parentheses
 	return "(" + lastName + ")"
 }
 
-// Helper function to check if a word is an honorific title
 func isHonorific(word string) bool {
 	return len(word) <= 3 && unicode.IsUpper(rune(word[0])) && (word[len(word)-1] == '.' || word[len(word)-1] == ',')
 }
 
 func GetLastNames(names string) string {
-	// Split the input string into individual names
 	nameList := strings.Split(names, " & ")
 
-	// If there is only one name, just return the last name
 	if len(nameList) == 1 {
 		return GetLastName(nameList[0])
 	}
 
-	// If there are two names, combine the last names with "&"
 	if len(nameList) == 2 {
 		return GetLastName(nameList[0]) + " & " + GetLastName(nameList[1])
 	}
 
-	// If there are more than two names, combine the first name and last names with "&"
 	firstName := nameList[0]
 	lastNames := make([]string, len(nameList)-1)
 	for i, name := range nameList[1:] {
@@ -108,17 +97,16 @@ func GetLastNames(names string) string {
 	return GetLastName(firstName) + " & " + strings.Join(lastNames, " & ")
 }
 
-func getListOfBooks(cCtx *cli.Context) error {
+func getListOfBooks(ctx context.Context, cmd *cli.Command) error {
 	db := dbThings.GetDBConnection()
+	defer db.Close()
 
-	// Getting a list of books
 	rows, err := db.Query(dbThings.GetAllBooksDbQueryConstant)
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer rows.Close()
 
-	// Render table with books
 	t := table.NewWriter()
 	t.SetOutputMirror(os.Stdout)
 	t.AppendHeader(table.Row{"SingleBook ID", "# notes", "Title and Author"})
@@ -129,14 +117,11 @@ func getListOfBooks(cCtx *cli.Context) error {
 		if err != nil {
 			log.Fatal(err)
 		}
-		// truncate title as needed so that table doesn't wrap when terminal width is narrow
 		truncatedTitle := singleBook.Title
 		if len(singleBook.Title) > 30 {
 			truncatedTitle = singleBook.Title[:30] + "..."
 		}
-		// shortened author name(s)
 		standardizedAuthor := GetLastNames(singleBook.Author)
-		// The title and author looks like: "My Great Book (Doe)"
 		t.AppendRows([]table.Row{
 			{singleBook.Id, singleBook.Number, fmt.Sprintf("%s %s", truncatedTitle, standardizedAuthor)},
 		})
@@ -151,24 +136,22 @@ func getListOfBooks(cCtx *cli.Context) error {
 	return nil
 }
 
-func exportNotesAndHighlights(cCtx *cli.Context) error {
+func exportNotesAndHighlights(ctx context.Context, cmd *cli.Command) error {
 	db := dbThings.GetDBConnection()
 	defer db.Close()
 
-	bookId := cCtx.String("book_id")
-	skipXNotes := cCtx.Int("skip_first_x_notes")
+	bookId := cmd.String("book_id")
+	skipXNotes := cmd.Int("skip_first_x_notes")
 	fmt.Println(bookId)
 
 	var book dbThings.SingleBook
 	row := db.QueryRow(dbThings.GetBookDataById, bookId)
 	err := row.Scan(&book.Name, &book.Author)
 	if err != nil {
-		//log.Fatal()
 		log.Println(err)
 		log.Fatal("SingleBook is not found in iBooks!")
 	}
 
-	// Render MarkDown into STDOUT
 	fmt.Println(fmt.Sprintf("# %s — %s\n", book.Name, book.Author))
 
 	rows, err := db.Query(dbThings.GetNotesHighlightsById, bookId, skipXNotes)
@@ -190,7 +173,6 @@ func exportNotesAndHighlights(cCtx *cli.Context) error {
 		}
 
 		fmt.Println("---\n\n")
-
 	}
 
 	return nil
