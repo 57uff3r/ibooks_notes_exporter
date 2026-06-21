@@ -12,6 +12,7 @@ type SingleBook struct {
 type SingleHighlightNote struct {
 	HightLight string
 	Note       sql.NullString
+	Style int
 }
 
 type SingleBookInList struct {
